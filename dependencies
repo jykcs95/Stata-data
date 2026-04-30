@@ -1,0 +1,3 @@
+pip install panda
+pip install gamry_parser
+pip install sqlite3
