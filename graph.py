@@ -125,6 +125,7 @@ def multiPlot(file_paths, x_col='Vf', y_col='Im'):
         annot.set_visible(False)
         fig.canvas.draw_idle()
 
+    csv_files = glob.glob('results_CA/*.csv')
 
     def save_data(event):
         for d in all_datasets:
