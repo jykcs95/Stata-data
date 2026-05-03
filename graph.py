@@ -52,6 +52,28 @@ def multiPlot(file_paths, x_col='Vf', y_col='Im'):
     fig.canvas.draw()
     orig_xlim, orig_ylim = ax.get_xlim(), ax.get_ylim()
 
+    # 3. SCROLL ZOOM FUNCTION
+    def zoom_fun(event):
+        if event.inaxes != ax: return
+        
+        cur_xlim = ax.get_xlim()
+        cur_ylim = ax.get_ylim()
+        
+        # Tuple-safe range calculation
+        dx = cur_xlim[1] - cur_xlim[0]
+        dy = cur_ylim[1] - cur_ylim[0]
+        
+        # Determine zoom speed (1.2x per scroll)
+        scale_factor = 1/1.2 if event.button == 'up' else 1.2
+        
+        # Calculate new limits centered on mouse position
+        rel_x = (cur_xlim[1] - event.xdata) / dx
+        rel_y = (cur_ylim[1] - event.ydata) / dy
+
+        ax.set_xlim([event.xdata - dx * scale_factor * (1 - rel_x), event.xdata + dx * scale_factor * rel_x])
+        ax.set_ylim([event.ydata - dy * scale_factor * (1 - rel_y), event.ydata + dy * scale_factor * rel_y])
+        fig.canvas.draw_idle()
+
     # 4. DISTANCE LOGIC (Find the nearest data point)
     def get_closest(event):
         if event.inaxes != ax: return None, None
@@ -125,8 +147,6 @@ def multiPlot(file_paths, x_col='Vf', y_col='Im'):
         annot.set_visible(False)
         fig.canvas.draw_idle()
 
-    csv_files = glob.glob('results_CA/*.csv')
-
     def save_data(event):
         for d in all_datasets:
             s, e = d['start_idx'], d['end_idx']
@@ -154,12 +174,13 @@ def multiPlot(file_paths, x_col='Vf', y_col='Im'):
     btn_save.on_clicked(save_data)
 
     # 10. CONNECT EVENTS AND FINALIZE
+    fig.canvas.mpl_connect("scroll_event", zoom_fun) # Zoom back in
     fig.canvas.mpl_connect("motion_notify_event", update_preview)
     fig.canvas.mpl_connect("button_press_event", on_click)
     
     plt.sca(ax)
-    plt.xlabel(f"X-Axis: {x_col}")
-    plt.ylabel(f"Y-Axis: {y_col}")
+    plt.xlabel(x_col)
+    plt.ylabel(y_col)
     plt.grid(True, linestyle='--', alpha=0.3)
     ax.legend(fontsize='x-small')
     plt.show()
@@ -168,7 +189,7 @@ def multiPlot(file_paths, x_col='Vf', y_col='Im'):
 if __name__ == "__main__":
     # 1. Load the CSV file
     file_path1 = Path("results_CV/output_dataCV.csv")
-    file_path2 = Path("results_CA/output_dataCA.csv")
+    file_path2 = Path("results_CV/output_cv_data.csv")
 
     files = [file_path1]
 

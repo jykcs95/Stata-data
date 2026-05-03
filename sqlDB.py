@@ -37,7 +37,7 @@ def titleQuery(title):
             query = "SELECT T, Vf, Im FROM 'my_table'"
             tag = "CA"
         case "cyclic voltammetry":
-            query = "SELECT VF, Im FROM 'my_table'"
+            query = "SELECT T, VF, Im FROM 'my_table'"
             tag = "CV"
     return [query,tag]
 
