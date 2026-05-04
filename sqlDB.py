@@ -22,10 +22,13 @@ def dtaParser(file):
     title = header["TITLE"]
     queryType = titleQuery(title)
     
+    #Checking if the file already exists
+    exist = False
     #Send all the data in to reading functino to find the corresponding output using the query
     for i in range(curve_count):
         curve_count = gp.get_curve_data(i)
-        path = reading(curve_count, queryType[0], file_name, queryType[1])
+        path = reading(curve_count, queryType[0], file_name, queryType[1], exist)
+        exist = True
     
     createHeader(path, header, file_name)
 
@@ -61,7 +64,7 @@ def createHeader(csvFile, header, fileName):
         f.write(existing_content)
 
 #Using SQL queries to read and alter the csv file to create a new file that contains a table with all the requested information
-def reading(df, sqlQuery, outFile, outType):
+def reading(df, sqlQuery, outFile, outType, exist=False):
     #connect to sqlite3 in order to use sql query
     conn = sqlite3.connect(":memory:")
     
@@ -77,8 +80,12 @@ def reading(df, sqlQuery, outFile, outType):
     #create parent directories if they don't exist
     file_path.parent.mkdir(parents=True, exist_ok=True)
 
+
     #add on to the file instead of rewriting it
-    result_df.to_csv(file_path, mode="a",index = False)
+    if exist:
+        result_df.to_csv(file_path, mode="a",index = False)
+    else:
+        result_df.to_csv(file_path, mode="w",index = False)
 
     conn.close()
 
