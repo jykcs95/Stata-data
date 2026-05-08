@@ -1,1 +1,17 @@
 graph.py
+sqlDB.spec
+build/sqlDB/Analysis-00.toc
+build/sqlDB/base_library.zip
+build/sqlDB/EXE-00.toc
+build/sqlDB/PKG-00.toc
+build/sqlDB/PYZ-00.pyz
+build/sqlDB/PYZ-00.toc
+build/sqlDB/sqlDB.pkg
+build/sqlDB/warn-sqlDB.txt
+build/sqlDB/xref-sqlDB.html
+build/sqlDB/localpycs/pyimod01_archive.pyc
+build/sqlDB/localpycs/pyimod02_importers.pyc
+build/sqlDB/localpycs/pyimod03_ctypes.pyc
+build/sqlDB/localpycs/pyimod04_pywin32.pyc
+build/sqlDB/localpycs/struct.pyc
+dist/sqlDB.exe

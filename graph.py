@@ -1,8 +1,11 @@
-import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
+
+import pandas as pd
 from pathlib import Path
+
 import numpy as np
+import glob
 import os
 
 def multiPlot(file_paths, x_col='Vf', y_col='Im'):
@@ -185,6 +188,8 @@ def multiPlot(file_paths, x_col='Vf', y_col='Im'):
     ax.legend(fontsize='x-small')
     plt.show()
 
+def getFiles():
+    return glob.glob("*.dta")
 
 if __name__ == "__main__":
     # 1. Load the CSV file
