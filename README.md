@@ -6,7 +6,6 @@
 #Truncator Preview
 ![Preview Two](truncator_preview1.png)
 ![Preview Three](truncator_preview2.png)
-![Preview Four](truncator_preview3.png)
 
 A complete Python-based workflow for processing, visualizing, and truncating electrochemical data. This suite transforms raw Gamry `.dta` files into clean datasets and provides an interactive GUI for precise data slicing.
 Made for researchers at Argonne National Lab
