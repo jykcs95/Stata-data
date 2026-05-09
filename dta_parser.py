@@ -1,0 +1,147 @@
+import pandas as pd
+import gamry_parser as parser
+
+import sqlite3
+import glob
+from pathlib import Path
+
+#Converts dta files to csv files
+def dtaParser(file):
+    #store the name of the file for later use
+    file_name = file.rsplit(".",1)[0]
+
+    #Call the gamry parser to read the dta files and get all the curve points
+    gp = parser.GamryParser()
+    gp.load(file)
+    curve_count = gp.get_curve_count()
+        
+    #store all headers
+    header = gp.get_header()
+
+    #Get the correct query for each title where first index contains query and second index contains the type
+    title = header["TITLE"]
+    queryType = titleQuery(title)
+    
+    # Manually scan for QLIMIT if it's missing from gp.header()
+    if queryType[1] == "CC" and "QLIMIT" not in gp.header:
+        with open(file, 'r') as f:
+            for line in f:
+                if 'QLIMIT' in line:
+                    # Expecting format: QLIMIT ONEPARAM T 1.20000E+005
+                    val = line.split()[-1]
+                    gp.header['QLIMIT'] = float(val)
+    
+    #Checking if the file already exists
+    exist = False
+    #Send all the data in to reading functino to find the corresponding output using the query
+    for i in range(curve_count):
+        curve_count = gp.get_curve_data(i)
+        path = reading(curve_count, queryType[0], file_name, queryType[1], exist)
+        exist = True
+    
+    createHeader(path, header, file_name, queryType[1])
+    print(f"Created new csv file for {file_name} with type: {queryType[1]}...")
+
+#Finding the right query and return the tag as well  
+def titleQuery(title):
+    query = ""
+    match title.lower():
+        #Im vs T -- truncating
+        case "chronoamperometry scan":
+            query = "SELECT T, Im FROM 'my_table'"
+            tag = "CA"
+        #Im vs T, C(Q) vs T
+        case "chronocoulometry scan":
+            query = "SELECT T, Im, Q FROM 'my_table'"
+            tag = "CC"
+        #Im vs Vf -- truncating
+        case "cyclic voltammetry":
+            query = "SELECT T, VF, Im FROM 'my_table'"
+            tag = "CV"
+        #Im vs Vf -- truncating
+        case "linear sweep voltammetry":
+            query = "SELECT T, VF, Im FROM 'my_table'"
+            tag = "LSV"
+        #Vs vs T
+        case "open circuit potential":
+            query = "SELECT T, VF FROM 'my_table'"
+            tag = "OCP"
+        #Zimag vs Zreal
+        case "potentiostatic eis":
+            query = "SELECT Time, Zimag,Zreal FROM 'my_table'"
+            tag = "PEIS"
+        
+    return [query,tag]
+
+#Creating header using the "ignore the grid" way
+def createHeader(csvFile, header, fileName, tag):
+    #open the csvfile
+    with open(csvFile,'r') as f:
+        existing_content= f.read()
+
+    #Get the right header for corresponding title
+    match header["TITLE"].lower():
+        case "chronoamperometry scan":
+            extra_data= [tag, fileName, "VSTEP1", header["VSTEP1"], "TSTEP1", header["TSTEP1"], "VSTEP2",header["VSTEP2"], "TSTEP2",  header["TSTEP2"]]
+        case "chronocoulometry scan":
+            extra_data= [tag, fileName, "VSTEP1", header["VSTEP1"], "TSTEP1", header["TSTEP1"], "QLIMIT", header["QLIMIT"]]
+        case "cyclic voltammetry":
+            extra_data= [tag, fileName,"SCAN RATE", header["SCANRATE"]]
+        case "linear sweep voltammetry":
+            extra_data= [tag, fileName,"SCAN RATE", header["SCANRATE"]]
+        case "open circuit potential":
+            extra_data= [tag, fileName]
+        case "potentiostatic eis":
+            extra_data= [tag, fileName]
+            
+    new_line = ",".join(map(str,extra_data)) + "\n"
+    
+    #rewrite the header with the existing content to the csv file
+    with open(csvFile,'w') as f:
+        f.write(new_line)
+        f.write(existing_content)
+
+#Using SQL queries to read and alter the csv file to create a new file that contains a table with all the requested information
+def reading(df, sqlQuery, outFile, outType, exist=False):
+    #connect to sqlite3 in order to use sql query
+    conn = sqlite3.connect(":memory:")
+    
+    df.to_sql("my_table", conn, index=False)
+
+    #SQL query to pull the necessary data from the csv  file
+    query = sqlQuery
+
+    result_df =  pd.read_sql_query(query, conn)
+
+    #storing the output into a new folder in the directory
+    file_path = Path(f"results_{outType}/output_{outFile}.csv")
+    #create parent directories if they don't exist
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+
+
+    #add on to the file instead of rewriting it while removing column names if its a header
+    if exist:
+        result_df.to_csv(file_path, mode="a",index = False, header=False)
+    else:
+        result_df.to_csv(file_path, mode="w",index = False)
+
+    conn.close()
+
+    return file_path
+
+#It's going to go through the header file and search for its title and date
+def searchHeader(headerFile):
+    df = pd.read_csv(headerFile)
+    title = df.at[0,"TITLE"]
+    date = df.at[0,"DATE"]
+    return {"title":title, "date":date}
+
+def getDTA():
+    return glob.glob("*.dta")
+
+
+if __name__ == "__main__":
+
+    dta_files = getDTA()
+    for file in dta_files:
+        dtaParser(file)
