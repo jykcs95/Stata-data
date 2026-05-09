@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
+from tkinter import messagebox, Tk
 import textwrap
 import pandas as pd
 from pathlib import Path
@@ -220,41 +221,54 @@ def multiPlot(file_paths, data_name, x_col='Vf', y_col='Im'):
 
     def save_data(event):
         """Save the high-resolution truncated data to CSV"""
-        for d in all_datasets:
-            s, e = d['start_idx'], d['end_idx']
-            if s < e:
-                truncated_df = d['df_orig'].iloc[s:e].copy()
 
-                truncated_df['Stored_Point_X'] = np.nan
-                truncated_df['Stored_Point_Y'] = np.nan
-                
-                # If a point was stored, get its values and add to the CSV
-                if d['stored_idx'] is not None:
-                    m_idx = d['stored_idx']
-                    truncated_df.iloc[0, truncated_df.columns.get_loc('Stored_Point_X')] = d['plot_x'][m_idx]
-                    truncated_df.iloc[0, truncated_df.columns.get_loc('Stored_Point_Y')] = d['plot_y'][m_idx]
+        # Initialize a hidden Tkinter root for the popups
+        root = Tk()
+        root.withdraw() # We don't want a blank window popping up
+        saved_count = 0
+        try:
+            for d in all_datasets:
+                s, e = d['start_idx'], d['end_idx']
+                if s < e:
+                    truncated_df = d['df_orig'].iloc[s:e].copy()
 
-                file_path = Path(f"truncated_{data_name}/truncated_{d['name']}")
-                file_path.parent.mkdir(parents=True, exist_ok=True)
-
-                # Get physical values for the range
-                x_start, x_end = d['plot_x'][s], d['plot_x'][e]
-                y_start, y_end = d['plot_y'][s], d['plot_y'][e]
-
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    # Metadata Headers
-                    f.write(f"{data_name}\n")
-                    f.write(f"# Original File: {d['name']}\n")
-                    f.write(f"# Truncation Index Range: {s} to {e}\n")
-                    f.write(f"# Truncation {x_col} Range: {x_start:.4f} to {x_end:.4f}\n")
-                    f.write(f"# Truncation {y_col} Range: {y_start:.4e} to {y_end:.4e}\n")
+                    truncated_df['Stored_Point_X'] = np.nan
+                    truncated_df['Stored_Point_Y'] = np.nan
                     
-                    # Write the CSV data
-                    truncated_df.to_csv(f, index=False, lineterminator='\n')
+                    # If a point was stored, get its values and add to the CSV
+                    if d['stored_idx'] is not None:
+                        m_idx = d['stored_idx']
+                        truncated_df.iloc[0, truncated_df.columns.get_loc('Stored_Point_X')] = d['plot_x'][m_idx]
+                        truncated_df.iloc[0, truncated_df.columns.get_loc('Stored_Point_Y')] = d['plot_y'][m_idx]
 
-                print(f"Saved {d['name']} with range: {x_start:.2f} to {x_end:.2f}")
+                    file_path = Path(f"truncated_{data_name}/truncated_{d['name']}")
+                    file_path.parent.mkdir(parents=True, exist_ok=True)
 
+                    # Get physical values for the range
+                    x_start, x_end = d['plot_x'][s], d['plot_x'][e]
+                    y_start, y_end = d['plot_y'][s], d['plot_y'][e]
 
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        # Metadata Headers
+                        f.write(f"{data_name}\n")
+                        f.write(f"# Original File: {d['name']}\n")
+                        f.write(f"# Truncation Index Range: {s} to {e}\n")
+                        f.write(f"# Truncation {x_col} Range: {x_start:.4f} to {x_end:.4f}\n")
+                        f.write(f"# Truncation {y_col} Range: {y_start:.4e} to {y_end:.4e}\n")
+                        
+                        # Write the CSV data
+                        truncated_df.to_csv(f, index=False, lineterminator='\n')
+
+                    saved_count += 1
+            if saved_count > 0:
+                messagebox.showinfo("Success", f"Successfully saved {saved_count} files to:\ntruncated_{data_name} folder")
+            else:
+                messagebox.showwarning("No Data", "No truncated ranges were set. Use Left/Right click to select range first.")
+        except Exception as e:
+            # This catches permission errors (e.g. file open in Excel) or path errors
+            messagebox.showerror("Save Error", f"Failed to save data.\n\nError: {str(e)}")
+        finally:
+            root.destroy() # Clean up the hidden window
     def on_press(event):
         """Record starting point for panning"""
         if event.inaxes != ax: return
