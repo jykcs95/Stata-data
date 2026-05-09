@@ -40,6 +40,7 @@ def dtaParser(file):
         exist = True
     
     createHeader(path, header, file_name, queryType[1])
+    print(f"Created new csv file for {file_name} with type: {queryType[1]}...")
 
 #Finding the right query and return the tag as well  
 def titleQuery(title):
