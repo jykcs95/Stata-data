@@ -28,7 +28,7 @@ def dtaParser(file):
             for line in f:
                 if 'QLIMIT' in line:
                     # Expecting format: QLIMIT ONEPARAM T 1.20000E+005
-                    val = line.split()[-1]
+                    val = line.split()[3]
                     gp.header['QLIMIT'] = float(val)
     
     #Checking if the file already exists
