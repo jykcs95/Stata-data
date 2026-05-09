@@ -52,6 +52,12 @@ pip install pandas numpy matplotlib gamry-parser
 
 The parser handles the "messy" work of reading Gamry's proprietary format and converting it into structured tables using an in-memory SQL engine.
 
+### 🗄️ SQL-Powered Data Transformation
+Unlike standard line-by-line parsers, this tool utilizes an **in-memory SQLite engine** to handle data extraction.
+- **Dynamic Queries:** Uses SQL `SELECT` statements to filter specific experimental columns (e.g., `Vf`, `Im`, `T`) based on the experiment type.
+- **Data Integrity:** Leveraging SQL allows for robust data type enforcement and rapid restructuring of multi-curve DTA files into flat CSV tables.
+- **Flexibility:** Easily adjust data output by modifying the SQL queries in the `titleQuery` mapping.
+
 **To Run:**
 Place your `.dta` files in the root folder and run:
 ```bash
