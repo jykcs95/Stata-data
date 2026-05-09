@@ -111,6 +111,7 @@ Exported CSVs from the Truncator include specialized `#` headers. These headers 
 To share this tool with colleagues who do not have Python installed:
 ```bash
 pip install pyinstaller
+pyinstaller --onefile --icon=app_icon.ico dta_parser.py
 pyinstaller --noconsole --onefile --icon=app_icon.ico multi_plot_truncator.py
 ```
 
