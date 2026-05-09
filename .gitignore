@@ -1,4 +1,5 @@
-ini# --- Python ---
+ini
+# --- Python ---
 __pycache__/
 *.py[cod]
 *$py.class
