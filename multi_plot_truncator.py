@@ -9,14 +9,14 @@ import glob
 import os
 
 # Helper to split long filenames into multiple lines for the legend
-def wrap_label(text, width=20):
+def wrapLabel(text, width=20):
     return '\n'.join(textwrap.wrap(text, width))
 
 def multiPlot(file_paths, data_name, x_col='Vf', y_col='Im'):
-    # 1. SETUP THE CANVAS
+    # Set up the Canvas
     fig, ax = plt.subplots(figsize=(16, 9))
 
-    # DISABLE default key bindings so 's' doesn't trigger the save dialog
+    # Disable default key bindings so 's' doesn't trigger the save dialog in the graph
     plt.rcParams['keymap.save'] = '' 
 
     # Standard margins to prevent UI/Legend overlap
@@ -25,7 +25,7 @@ def multiPlot(file_paths, data_name, x_col='Vf', y_col='Im'):
     all_datasets = []
     plot_lines = []
 
-    # 2. LOAD AND CLEAN DATA
+    # Load and clean data
     for path in file_paths:
         df = pd.read_csv(path, skiprows=1, comment='#')
         
@@ -40,11 +40,11 @@ def multiPlot(file_paths, data_name, x_col='Vf', y_col='Im'):
         df = df.dropna(subset=[x_col, y_col]).reset_index(drop=True)
         
         file_name = os.path.basename(path)
-        wrapped_name = wrap_label(file_name, width=40)
+        wrapped_name = wrapLabel(file_name, width=40)
 
         m, = ax.plot([], [], 'kx', markersize=10, markeredgewidth=3, zorder=11)
 
-        # Performance: Only plot ~7000 points visually to keep UI responsive
+        # Only plot ~7000 points visually to keep UI responsive
         num_points = len(df)
         step = max(1, num_points // 7000)
 
@@ -66,7 +66,7 @@ def multiPlot(file_paths, data_name, x_col='Vf', y_col='Im'):
         line, = ax.plot(df[x_col][::step], df[y_col][::step], alpha=0.7, label=wrapped_name)
         plot_lines.append(line)
 
-    # 3. INTERACTIVE UI ELEMENTS
+    # Interactive UI elements
     preview_dot, = ax.plot([], [], 'ro', markersize=6, zorder=20)
     annot = ax.annotate("", xy=(0,0), xytext=(15, 15), textcoords="offset points", 
                         bbox=dict(boxstyle="round", fc="white", ec="red", alpha=0.9),
@@ -80,9 +80,8 @@ def multiPlot(file_paths, data_name, x_col='Vf', y_col='Im'):
     # Shared state for the click-and-drag logic
     drag_state = {'is_panning': False, 'start_mouse_pix': (None, None), 'start_limits': (None, None), 'moved': False}
 
-    # --- INTERNAL INTERACTIVE FUNCTIONS ---
-
-    def zoom_fun(event):
+    # Internal Interactive Functions
+    def zoomFun(event):
         if event.inaxes != ax: return
         
         # Get current limits
@@ -120,7 +119,8 @@ def multiPlot(file_paths, data_name, x_col='Vf', y_col='Im'):
             
         fig.canvas.draw_idle()
 
-    def get_closest(event):
+    # Deeply search through the area where it's clicked
+    def getClosest(event):
         if event.inaxes != ax: return None, None
         xl, yl = ax.get_xlim(), ax.get_ylim()
         rx, ry = (xl[1] - xl[0]), (yl[1] - yl[0])
@@ -129,13 +129,13 @@ def multiPlot(file_paths, data_name, x_col='Vf', y_col='Im'):
         for i, d in enumerate(all_datasets):
             if not plot_lines[i].get_visible(): continue
             
-            # 1. Find the neighborhood in the decimated data
+            # Find the neighborhood in the decimated data
             file_step = d['step']
             xs_sub, ys_sub = d['plot_x'][::file_step], d['plot_y'][::file_step]
             dists_sub = ((xs_sub - event.xdata)/rx)**2 + ((ys_sub - event.ydata)/ry)**2
             idx_sub = np.argmin(dists_sub)
             
-            # 2. Refine search: Look at the FULL data around that neighborhood
+            # Look at the FULL data around that neighborhood
             center_idx = idx_sub * file_step
             search_start = max(0, center_idx - file_step)
             search_end = min(len(d['plot_x']), center_idx + file_step)
@@ -155,10 +155,10 @@ def multiPlot(file_paths, data_name, x_col='Vf', y_col='Im'):
                 
         return best_match, best_dist
 
-    def update_preview(event):
-        """Update the hover tooltip box"""
+    # Update the hover tooltip box
+    def updatePreview(event):
         if drag_state.get('is_panning', False): return
-        match, dist = get_closest(event)
+        match, dist = getClosest(event)
         if match and dist < 0.02:
             ds_i, pt_i = match
             d = all_datasets[ds_i]
@@ -186,9 +186,9 @@ def multiPlot(file_paths, data_name, x_col='Vf', y_col='Im'):
             preview_dot.set_data([], [])
         fig.canvas.draw_idle()
 
-    def handle_truncation(event):
-        """Set new Start (Right Click) or End (Left Click) points for saving"""
-        match, dist = get_closest(event)
+    #Set new Start (Right Click) or End (Left Click) points for saving
+    def handleTruncation(event):
+        match, dist = getClosest(event)
         if match and dist < 0.02:
             ds_i, pt_i = match
             d = all_datasets[ds_i]
@@ -203,10 +203,10 @@ def multiPlot(file_paths, data_name, x_col='Vf', y_col='Im'):
                 plot_lines[ds_i].set_ydata(d['plot_y'][s:e+1])
                 fig.canvas.draw_idle()
 
+    # Restore all data to full original length
     def reset(event):
-        """Restore all data to full original length"""
         for i, d in enumerate(all_datasets):
-            d['stored_idx'] = None # Clear stored points
+            d['stored_idx'] = None
             d['marker'].set_data([], [])
             d['start_idx'], d['end_idx'] = 0, len(d['plot_x']) - 1
             plot_lines[i].set_xdata(d['plot_x'][::d['step']])
@@ -214,14 +214,13 @@ def multiPlot(file_paths, data_name, x_col='Vf', y_col='Im'):
         ax.set_xlim(orig_xlim); ax.set_ylim(orig_ylim)
         fig.canvas.draw_idle()
 
-    def reset_zoom(event):
-        """Restore zoom only, keep data truncation"""
+    # Restore zoom only, keep data truncation
+    def resetZoom(event):
         ax.set_xlim(orig_xlim); ax.set_ylim(orig_ylim)
         fig.canvas.draw_idle()
 
-    def save_data(event):
-        """Save the high-resolution truncated data to CSV"""
-
+    # Save the high-resolution truncated data to CSV
+    def saveData(event):
         # Initialize a hidden Tkinter root for the popups
         root = Tk()
         root.withdraw() # We don't want a blank window popping up
@@ -265,12 +264,13 @@ def multiPlot(file_paths, data_name, x_col='Vf', y_col='Im'):
             else:
                 messagebox.showwarning("No Data", "No truncated ranges were set. Use Left/Right click to select range first.")
         except Exception as e:
-            # This catches permission errors (e.g. file open in Excel) or path errors
+            # This catches permission errors or path errors
             messagebox.showerror("Save Error", f"Failed to save data.\n\nError: {str(e)}")
         finally:
-            root.destroy() # Clean up the hidden window
-    def on_press(event):
-        """Record starting point for panning"""
+            # Clean up the hidden window
+            root.destroy() 
+    # Record starting point for panning
+    def onPress(event):
         if event.inaxes != ax: return
         if event.button == 1:
             drag_state.update({
@@ -280,12 +280,12 @@ def multiPlot(file_paths, data_name, x_col='Vf', y_col='Im'):
                 'start_limits': (ax.get_xlim(), ax.get_ylim())
             })
 
-    def on_key(event):
+    # When pressed "s" using keyboard in the graph store the point to the truncated graph
+    def onKey(event):
         if event.key == 's' and event.inaxes == ax:
-            match, dist = get_closest(event)
+            match, dist = getClosest(event)
             
             if match:
-                # UNPACK THE TUPLE: match is (ds_i, pt_i)
                 ds_i, pt_i = match 
                 
                 # Now ds_i is an integer (e.g., 0)
@@ -297,13 +297,14 @@ def multiPlot(file_paths, data_name, x_col='Vf', y_col='Im'):
                 print(f"Stored point for {d['name']}")
                 fig.canvas.draw_idle()
 
-    def on_drag(event):
-        """Handle panning movement and freeze if leaving axes"""
+    # Handle panning movement and freeze if leaving axes
+    def onDrag(event):
         if drag_state['is_panning'] and event.inaxes != ax:
-            drag_state['is_panning'] = False # Snap-freeze if cursor leaves plot
+            # Snap-freeze if cursor leaves plot
+            drag_state['is_panning'] = False 
             return
         if not drag_state['is_panning']:
-            if event.inaxes == ax: update_preview(event)
+            if event.inaxes == ax: updatePreview(event)
             return
         
         # Calculate pixel-based movement to avoid 'shaking'
@@ -323,29 +324,29 @@ def multiPlot(file_paths, data_name, x_col='Vf', y_col='Im'):
         ax.set_ylim(ylims[0] - dy_data, ylims[1] - dy_data)
         fig.canvas.draw_idle()
 
-    def on_release(event):
-        """Release pan state or trigger truncation click"""
+    # Release pan state or trigger truncation click
+    def onRelease(event):
         if event.inaxes != ax:
             drag_state['is_panning'] = False
             return
         if event.button == 1:
             if not drag_state['moved']: 
-                handle_truncation(event)
+                handleTruncation(event)
             drag_state['is_panning'] = False
         elif event.button == 3:
-            handle_truncation(event)
+            handleTruncation(event)
 
-    # 4. UI BUTTON DEFINITIONS
+    # UI BUTTON DEFINITIONS
     ax_zoom = plt.axes([0.15, 0.05, 0.15, 0.05])
     ax_reset = plt.axes([0.35, 0.05, 0.15, 0.05])
     ax_save = plt.axes([0.55, 0.05, 0.15, 0.05])
 
     btn_zoom = Button(ax_zoom, 'Reset Zoom')
-    btn_zoom.on_clicked(reset_zoom)
+    btn_zoom.on_clicked(resetZoom)
     btn_reset = Button(ax_reset, 'Reset Data')
     btn_reset.on_clicked(reset)
     btn_save = Button(ax_save, 'Save CSVs')
-    btn_save.on_clicked(save_data)
+    btn_save.on_clicked(saveData)
 
     controls_text = (
         "ZOOM CONTROLS:\n"
@@ -362,14 +363,15 @@ def multiPlot(file_paths, data_name, x_col='Vf', y_col='Im'):
     fig.text(0.98, 0.02, controls_text, fontsize=9, verticalalignment='bottom', horizontalalignment='right', multialignment='left',
             bbox=dict(boxstyle='round', facecolor='white', alpha=0.7, edgecolor='gray'))
 
-    # 5. LEGEND & TOGGLE LOGIC
+    # LEGEND & TOGGLE LOGIC
     leg = ax.legend(
         fontsize='medium', 
         loc='upper left', 
         bbox_to_anchor=(1.02, 1), 
         labelspacing=1.2
     )
-    #legend stays behind the tool tip
+
+    # Legend stays behind the tool tip
     leg.set_zorder(5)
 
     leg.set_draggable(False) 
@@ -382,8 +384,8 @@ def multiPlot(file_paths, data_name, x_col='Vf', y_col='Im'):
         leg_line.set_pickradius(15)
         ax.map_legend_to_plot[leg_line] = plot_line
 
-    def on_pick(event):
-        """Toggle line visibility when clicking the legend icon"""
+    # Toggle line visibility when clicking the legend icon
+    def onPick(event):
         if event.artist in ax.map_legend_to_plot:
             plot_line = ax.map_legend_to_plot[event.artist]
             vis = not plot_line.get_visible()
@@ -399,12 +401,12 @@ def multiPlot(file_paths, data_name, x_col='Vf', y_col='Im'):
 
 
     # 6. CONNECT EVENTS
-    fig.canvas.mpl_connect("key_press_event", on_key)
-    fig.canvas.mpl_connect('pick_event', on_pick)
-    fig.canvas.mpl_connect("scroll_event", zoom_fun)
-    fig.canvas.mpl_connect("button_press_event", on_press)
-    fig.canvas.mpl_connect("motion_notify_event", on_drag)
-    fig.canvas.mpl_connect("button_release_event", on_release)
+    fig.canvas.mpl_connect("key_press_event", onKey)
+    fig.canvas.mpl_connect('pick_event', onPick)
+    fig.canvas.mpl_connect("scroll_event", zoomFun)
+    fig.canvas.mpl_connect("buttonPress_event", onPress)
+    fig.canvas.mpl_connect("motion_notify_event", onDrag)
+    fig.canvas.mpl_connect("buttonRelease_event", onRelease)
 
     # Title and Labels
     ax.set_title(f"{data_name} Files", fontsize=16, fontweight='bold', pad=20)
