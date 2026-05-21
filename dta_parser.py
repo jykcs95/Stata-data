@@ -24,12 +24,12 @@ def dtaParser(file):
     
     # Manually scan for QLIMIT if it's missing from gp.header()
     if queryType[1] == "CC" and "QLIMIT" not in gp.header:
-        with open(file, 'r') as f:
+        with open(file, "r") as f:
             for line in f:
-                if 'QLIMIT' in line:
+                if "QLIMIT" in line:
                     # Expecting format: QLIMIT ONEPARAM T 1.20000E+005
                     val = line.split()[3]
-                    gp.header['QLIMIT'] = float(val)
+                    gp.header["QLIMIT"] = float(val)
     
     # Checking if the file already exists
     exist = False
@@ -76,7 +76,7 @@ def titleQuery(title):
 # Creating header using the "ignore the grid" way
 def createHeader(csvFile, header, fileName, tag):
     # Open the csvfile
-    with open(csvFile,'r') as f:
+    with open(csvFile,"r") as f:
         existing_content= f.read()
 
     # Get the right header for corresponding title
@@ -97,7 +97,7 @@ def createHeader(csvFile, header, fileName, tag):
     new_line = ",".join(map(str,extra_data)) + "\n"
     
     # Rewrite the header with the existing content to the csv file
-    with open(csvFile,'w') as f:
+    with open(csvFile,"w") as f:
         f.write(new_line)
         f.write(existing_content)
 
