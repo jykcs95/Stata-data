@@ -2,7 +2,7 @@
 
 A complete Python-based workflow for processing, visualizing, and truncating electrochemical data. This suite transforms raw Gamry `.dta` files into clean datasets and provides an interactive GUI for precise data slicing.
 Made for researchers at Argonne National Labatory
-a
+
 #Paser Preview
 ![Preview One](parser_preview.png)
 
